@@ -133,7 +133,7 @@ class AccessibilityDelegate(private val accessibilityService: AccessibilityServi
                 TAG log "NodeInfo: $node"
                 val content = node.text ?: node.contentDescription
                 content?.toString()?.toLowerCase()?.let {
-                    if (it == str || (match && it.length < 10 && it.startsWith(str))) {
+                    if (it == str || (match && it.length < 10 && (it.startsWith(str)||it.endsWith(str)))) {
                         if (str == getString(R.string.skip)) {
                             val rect = Rect()
                             node.getBoundsInScreen(rect)
