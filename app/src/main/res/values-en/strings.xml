@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Goldfish</string>
+    <string name="accessibility_tips">Custom your phone</string>
+    <string name="skip">skip</string>
+    <string name="login">login</string>
+    <string name="welcome">Hello Friend</string>
+</resources>

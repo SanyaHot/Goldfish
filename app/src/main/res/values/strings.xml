@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">华强</string>
+    <string name="accessibility_tips">定义你的瓜</string>
+    <string name="welcome">你好，华强</string>
+    <string name="skip">跳过</string>
+    <string name="login">登录</string>
+</resources>
