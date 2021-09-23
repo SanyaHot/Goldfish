@@ -5,6 +5,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.annotation.StringRes
 import com.sfdex.goldfish.MyApplication
+import com.sfdex.goldfish.accessibility.EventDispatcher
 
 val gContext: Context
     get() = MyApplication.getContext()
@@ -20,6 +21,18 @@ fun String.logd(msg: String) {
     Log.d(this, "$msg")
 }
 
-infix fun String.log(msg: String) {
+infix fun String.log(msg: Any) {
     Log.d(this, "$msg")
+}
+
+var gDispatcher: EventDispatcher? = null
+fun performClick(coordinate: Array<Float>) {
+    "点击坐标(${coordinate[0]},${coordinate[1]})".toast()
+    if (coordinate.size < 2) {
+        "坐标异常".toast()
+    }
+    gDispatcher ?: "服务异常".toast()
+    if (gDispatcher != null) {
+        gDispatcher!!.performGesture(coordinate[0], coordinate[1])
+    }
 }

@@ -14,7 +14,7 @@ object AccessibilityServiceUtils {
         context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
-    //是否开启无障碍服务权限
+    //判断无障碍服务权限
     fun isAccessibilityServiceEnabled(
         context: Context,
         accessibilityService: Class<out AccessibilityService>
@@ -24,8 +24,7 @@ object AccessibilityServiceUtils {
         val enabledServicesSetting = Settings.Secure.getString(
             context.contentResolver,
             Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        )
-            ?: return false
+        ) ?: return false
 
         val colonSplitter = TextUtils.SimpleStringSplitter(':')
         colonSplitter.setString(enabledServicesSetting)
@@ -40,6 +39,4 @@ object AccessibilityServiceUtils {
 
         return false
     }
-
-
 }
