@@ -28,6 +28,7 @@ import com.sfdex.goldfish.utils.toast
 import com.sfdex.goldfish.viewmodel.MainViewModel
 import com.sfdex.goldfish.window.FloatingWindow
 import com.sfdex.goldfish.ui.theme.GoldfishTheme
+import com.sfdex.goldfish.utils.ShellUtils
 
 //主界面
 class MainActivity : ComponentActivity() {
@@ -142,7 +143,8 @@ class MainActivity : ComponentActivity() {
                 MyAccessibilityService::class.java
             )
         ) {
-            AccessibilityServiceUtils.goToAccessibilitySetting(this)
+            //AccessibilityServiceUtils.goToAccessibilitySetting(this)
+            ShellUtils.execCommand("settings put secure enabled_accessibility_services com.sfdex.goldfish/.accessibility.MyAccessibilityService",true)
         }
     }
 

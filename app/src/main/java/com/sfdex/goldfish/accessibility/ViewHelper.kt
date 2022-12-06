@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.graphics.Path
 import android.graphics.Rect
+import android.os.SystemClock
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
@@ -23,13 +24,22 @@ class ViewHelper(private val accessibilityService: MyAccessibilityService) : IVi
         screenWidth = MyApplication.getContext().resources.displayMetrics.widthPixels
     }
 
-    override fun findById(id: String, event: AccessibilityEvent): AccessibilityNodeInfo? {
+    override fun findById(
+        id: String,
+        event: AccessibilityEvent,
+        last: Boolean
+    ): AccessibilityNodeInfo? {
+        Log.d(TAG, "findById: $id")
         val source = event.source ?: accessibilityService.rootInActiveWindow
         source ?: return null
         var foundView: AccessibilityNodeInfo? = null
         val node = source.findAccessibilityNodeInfosByViewId(id)
         if (node != null && node.size > 0) {
-            foundView = node[0]
+            foundView = if (last) {
+                node[node.size - 1]
+            } else {
+                node[0]
+            }
             TAG log "findById success"
         } else {
             TAG log "findById failure"
@@ -42,48 +52,43 @@ class ViewHelper(private val accessibilityService: MyAccessibilityService) : IVi
         event: AccessibilityEvent,
         regex: Boolean
     ): AccessibilityNodeInfo? {
-        val source = accessibilityService.rootInActiveWindow
-        val source1 = event.source
+        Log.d(TAG, "findByTxt: $txt")
+        var foundView: AccessibilityNodeInfo? = getNodeFromTree(event, txt)
+//        var foundView: AccessibilityNodeInfo? = null
+        if (foundView == null) {
+            val source = accessibilityService.rootInActiveWindow
+            val source1 = event.source
 
-        if (source == null) {
-            TAG log "SOURCE NULL"
-            return null
-        }
-        var list = source.findAccessibilityNodeInfosByText(txt)
-        if (list.isEmpty() && source1 != null) {
-            list = source1.findAccessibilityNodeInfosByText(txt)
-        }
-        if (list.isEmpty()) {
-            TAG log "FIND FAILURE"
-            return null
-        }
-        var foundView: AccessibilityNodeInfo? = null
-        list.map { node ->
-            TAG log "Map NodeInfo: $node"
-            val content = node.text ?: node.contentDescription
-            content?.toString()?.toLowerCase()?.let {
-                if (
-                    it == txt ||
-                    (regex && it.length < 10 &&
-                            (it.startsWith(txt) || it.endsWith(txt)))
-                ) {
-                    if (txt == getString(R.string.skip)) {
+            if (source == null) {
+                TAG log "SOURCE NULL"
+                return null
+            }
+            var list = source.findAccessibilityNodeInfosByText(txt)
+            if (list.isEmpty() && source1 != null) {
+                list = source1.findAccessibilityNodeInfosByText(txt)
+            }
+            if (list.isEmpty()) {
+                TAG log "FIND FAILURE"
+                return null
+            }
+            list.map { node ->
+                TAG log "Map NodeInfo: $node"
+                val content = node.text ?: node.contentDescription
+                if (content?.isNotBlank() == true) {
+                    TAG log "content: $content"
+                }
+                content?.toString()?.let {
+                    if (it.contains(txt)) {
                         val rect = Rect()
                         node.getBoundsInScreen(rect)
-                        //屏幕右边1/4
-                        if (rect.left >= screenWidth * 0.7) {
-                            foundView = node
-                            TAG log "FoundView $foundView"
-                        }
-                    } else foundView = node
+                        foundView = node
+                        TAG log "FoundView $foundView"
+                        return foundView
+                    }
                 }
             }
-
-            //京东
-            if (foundView == null && node.contentDescription == txt) {
-                foundView = node
-            }
         }
+
         return foundView
     }
 
@@ -134,6 +139,9 @@ class ViewHelper(private val accessibilityService: MyAccessibilityService) : IVi
         return gestureCoordinate(x, y)
     }
 
+    var retryCount = 0
+    var lastX = 0F
+    var lastY = 0F
     override fun gestureCoordinate(x: Float, y: Float): Boolean {
         val builder = GestureDescription.Builder()
         val path = Path()
@@ -151,6 +159,23 @@ class ViewHelper(private val accessibilityService: MyAccessibilityService) : IVi
                 override fun onCancelled(gestureDescription: GestureDescription?) {
                     super.onCancelled(gestureDescription)
                     TAG log "dispatchGesture onCancelled: "
+                    if (lastX == 0F && lastY == 0F) {
+                        lastX = x
+                        lastY = y
+                    }
+                    if (lastX == x && lastY == y) {
+                        retryCount++
+                        if (retryCount < 3) {
+                            SystemClock.sleep(30)
+                            gestureCoordinate(x, y)
+                        } else {
+                            retryCount = 0
+                        }
+                    }else{
+                        retryCount = 0
+                    }
+                    lastX = x
+                    lastY = y
                 }
             },
             null
@@ -180,14 +205,71 @@ class ViewHelper(private val accessibilityService: MyAccessibilityService) : IVi
         }
     }
 
+    //遍历View树
+    override fun getNodeFromTree(event: AccessibilityEvent, txt: String): AccessibilityNodeInfo? {
+        val nodeInfo: AccessibilityNodeInfo? =
+            event.source ?: accessibilityService.rootInActiveWindow
+        nodeInfo?.let {
+            return getNodeFromTreeInternal(0, it, txt)
+        }
+        return null
+    }
+
+    //递归遍历
+    private fun getNodeFromTreeInternal(
+        depth: Int,
+        nodeInfo: AccessibilityNodeInfo,
+        txt: String
+    ): AccessibilityNodeInfo? {
+        printNode(depth, nodeInfo)
+        val childCount = nodeInfo.childCount
+        for (i in 0 until childCount) {
+            val child = nodeInfo.getChild(i)
+            if (child != null) {
+                TAG log "traversal: index $i"
+                val newDepth = depth + 1
+                return getNodeFromTreeByTraversal(newDepth, child, txt)
+            }
+        }
+        return null
+    }
+
+    //递归遍历
+    private fun getNodeFromTreeByTraversal(
+        depth: Int,
+        nodeInfo: AccessibilityNodeInfo,
+        txt: String
+    ): AccessibilityNodeInfo? {
+        printNode(depth, nodeInfo)
+        var content = nodeInfo.text
+        if (content.isNullOrBlank()) {
+            content = nodeInfo.contentDescription
+        }
+        if (content?.contains(txt) == true) {
+            return nodeInfo
+        }
+        val childCount = nodeInfo.childCount
+        for (i in 0 until childCount) {
+            val child = nodeInfo.getChild(i)
+            if (child != null) {
+                TAG log "traversal: index $i"
+                val newDepth = depth + 1
+                return getNodeFromTreeByTraversal(newDepth, child, txt)
+            }
+        }
+        return null
+    }
+
     //打印结点信息
     private fun printNode(depth: Int, node: AccessibilityNodeInfo) {
         TAG.run {
-            log("traversal: depth $depth")
+            log("------------------------------")
+//            log("traversal: depth $depth")
             log("traversal: text ${node.text}")
-            log("traversal: class ${node.className}")
-            log("traversal: clickable ${node.isClickable}")
-            log("traversal: viewId ${node.viewIdResourceName}")
+            log("traversal: desc ${node.contentDescription}")
+//            log("traversal: class ${node.className}")
+//            log("traversal: clickable ${node.isClickable}")
+//            log("traversal: viewId ${node.viewIdResourceName}")
             val rect = Rect()
             node.getBoundsInScreen(rect)
             log("traversal: bounds $rect")

@@ -11,7 +11,7 @@ interface IViewHelper {
      * 通过id去查找view
      * @param id 控件的id
      */
-    fun findById(id: String, event: AccessibilityEvent): AccessibilityNodeInfo?
+    fun findById(id: String, event: AccessibilityEvent, last:Boolean = false): AccessibilityNodeInfo?
 
     /**
      * 通过文字内容去查找view
@@ -36,4 +36,5 @@ interface IViewHelper {
 
     //遍历View树
     fun traversal(event: AccessibilityEvent)
+    fun getNodeFromTree(event: AccessibilityEvent,txt:String):AccessibilityNodeInfo?
 }
