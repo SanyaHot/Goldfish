@@ -1,4 +1,4 @@
-package com.sfdex.goldfish.accessibility
+package com.sfdex.goldfish.accessibility.apn
 
 import android.content.ComponentName
 import android.content.pm.ActivityInfo
@@ -10,12 +10,16 @@ import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
 import android.widget.Toast
+import com.sfdex.goldfish.accessibility.IViewHelper
+import com.sfdex.goldfish.accessibility.MyAccessibilityService
+import com.sfdex.goldfish.accessibility.ViewHelper
 import com.sfdex.goldfish.proxy.ViewHelperProxy
 import com.sfdex.goldfish.utils.log
 
-private const val TAG = "SkipHandler"
+private const val TAG = "TabletApnHandler"
+var currentStep = TabletApnHandler.APN_SETTING
 
-class SkipHandler(
+class TabletApnHandler(
     private val accessibilityService: MyAccessibilityService,
 ) {
 
@@ -91,7 +95,7 @@ class SkipHandler(
         const val FINISH = 12
     }
 
-    private var currentStep = APN_SETTING
+//    var currentStep = APN_SETTING
     private fun monitorEvent(event: AccessibilityEvent): AccessibilityNodeInfo? {
         TAG log "before currentStep: $currentStep"
         var node: AccessibilityNodeInfo? =

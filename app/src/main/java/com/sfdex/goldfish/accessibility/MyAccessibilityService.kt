@@ -2,9 +2,12 @@ package com.sfdex.goldfish.accessibility
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
+import android.content.ComponentName
+import android.content.Intent
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import com.sfdex.goldfish.MyApplication
+import com.sfdex.goldfish.utils.DeviceUtil
 import com.sfdex.goldfish.utils.ShellUtils
 import com.sfdex.goldfish.utils.log
 import com.sfdex.goldfish.utils.toast
@@ -20,9 +23,25 @@ class MyAccessibilityService : AccessibilityService() {
         "华强已启动".toast()
 
         SystemClock.sleep(100)
-        ShellUtils.execCommand("killall com.android.settings", true)
-        SystemClock.sleep(100)
-        ShellUtils.execCommand("am start -n com.android.phone/.MobileNetworkSettings", true)
+        if (DeviceUtil.isTablet()) {
+            ShellUtils.execCommand("killall com.android.settings", true)
+            SystemClock.sleep(100)
+            ShellUtils.execCommand("am start -n com.android.phone/.MobileNetworkSettings", true)
+        } else if (DeviceUtil.isAndroid7()) {
+            val intent = Intent().apply {
+                component =
+                    ComponentName("com.android.phone", "com.android.phone.MobileNetworkSettings")
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            startActivity(intent)
+        } else if (DeviceUtil.isAndroid11()){
+            val intent = Intent().apply {
+                component =
+                    ComponentName("com.android.settings", "com.android.settings.network.telephony.MobileNetworkActivity")
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            startActivity(intent)
+        }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {

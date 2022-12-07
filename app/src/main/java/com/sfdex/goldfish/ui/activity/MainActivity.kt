@@ -1,8 +1,10 @@
 package com.sfdex.goldfish.ui.activity
 
+import android.content.ComponentName
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.SystemClock
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -28,6 +30,7 @@ import com.sfdex.goldfish.utils.toast
 import com.sfdex.goldfish.viewmodel.MainViewModel
 import com.sfdex.goldfish.window.FloatingWindow
 import com.sfdex.goldfish.ui.theme.GoldfishTheme
+import com.sfdex.goldfish.utils.DeviceUtil
 import com.sfdex.goldfish.utils.ShellUtils
 
 //主界面
@@ -73,6 +76,9 @@ class MainActivity : ComponentActivity() {
             ) {
                 Button(onClick = { showFloatingWindow() }, modifier = Modifier.layoutId("button")) {
                     Text(text = "开启悬浮窗")
+                }
+                Button(onClick = { setApn() }, modifier = Modifier.layoutId("apn")) {
+                    Text(text = "重设APN")
                 }
                 Text(
                     text = "无障碍服务${if (isEnable) "正常" else "未开启"}", /*modifier = Modifier.fillMaxWidth(),*/
@@ -143,8 +149,14 @@ class MainActivity : ComponentActivity() {
                 MyAccessibilityService::class.java
             )
         ) {
-            //AccessibilityServiceUtils.goToAccessibilitySetting(this)
-            ShellUtils.execCommand("settings put secure enabled_accessibility_services com.sfdex.goldfish/.accessibility.MyAccessibilityService",true)
+            if (DeviceUtil.isTablet()) {
+                ShellUtils.execCommand(
+                    "settings put secure enabled_accessibility_services com.sfdex.goldfish/.accessibility.MyAccessibilityService",
+                    true
+                )
+            } else {
+                AccessibilityServiceUtils.goToAccessibilitySetting(this)
+            }
         }
     }
 
@@ -167,5 +179,30 @@ class MainActivity : ComponentActivity() {
             }
         }
         return floatingWindow!!
+    }
+
+    private fun setApn() {
+        if (DeviceUtil.isTablet()) {
+            ShellUtils.execCommand("killall com.android.settings", true)
+            SystemClock.sleep(100)
+            ShellUtils.execCommand("am start -n com.android.phone/.MobileNetworkSettings", true)
+        } else if (DeviceUtil.isAndroid7()) {
+            val intent = Intent().apply {
+                component =
+                    ComponentName("com.android.phone", "com.android.phone.MobileNetworkSettings")
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            startActivity(intent)
+        } else if (DeviceUtil.isAndroid11()) {
+            val intent = Intent().apply {
+                component =
+                    ComponentName(
+                        "com.android.settings",
+                        "com.android.settings.network.telephony.MobileNetworkActivity"
+                    )
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            startActivity(intent)
+        }
     }
 }
