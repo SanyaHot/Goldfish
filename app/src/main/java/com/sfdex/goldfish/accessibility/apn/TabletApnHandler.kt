@@ -56,6 +56,7 @@ class TabletApnHandler(
                     "com.android.settings.Settings\$ApnSettingsActivity",
                     "com.android.settings.Settings\$ApnEditorActivity",
                     "android.app.AlertDialog",
+                    "androidx.appcompat.app.AlertDialog",
                     "android.widget.FrameLayout"
                 ) -> monitorEvent(event)
 

@@ -1,7 +1,7 @@
 <resources>
-    <string name="app_name">华强</string>
-    <string name="accessibility_tips">定义你的瓜</string>
-    <string name="welcome">你好，华强</string>
+    <string name="app_name">自动APN</string>
+    <string name="accessibility_tips">自动设置APN</string>
+    <string name="welcome">你好，APN</string>
     <string name="skip">跳过</string>
     <string name="login">登录</string>
 </resources>

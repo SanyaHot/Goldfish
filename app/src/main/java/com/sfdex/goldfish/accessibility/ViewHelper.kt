@@ -221,7 +221,6 @@ class ViewHelper(private val accessibilityService: MyAccessibilityService) : IVi
         nodeInfo: AccessibilityNodeInfo,
         txt: String
     ): AccessibilityNodeInfo? {
-        printNode(depth, nodeInfo)
         val childCount = nodeInfo.childCount
         for (i in 0 until childCount) {
             val child = nodeInfo.getChild(i)
@@ -240,12 +239,12 @@ class ViewHelper(private val accessibilityService: MyAccessibilityService) : IVi
         nodeInfo: AccessibilityNodeInfo,
         txt: String
     ): AccessibilityNodeInfo? {
-        printNode(depth, nodeInfo)
         var content = nodeInfo.text
         if (content.isNullOrBlank()) {
             content = nodeInfo.contentDescription
         }
         if (content?.contains(txt) == true) {
+            printNode(depth, nodeInfo)
             return nodeInfo
         }
         val childCount = nodeInfo.childCount
