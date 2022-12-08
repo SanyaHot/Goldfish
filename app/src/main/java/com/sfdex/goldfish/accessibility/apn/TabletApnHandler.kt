@@ -14,10 +14,26 @@ import com.sfdex.goldfish.accessibility.IViewHelper
 import com.sfdex.goldfish.accessibility.MyAccessibilityService
 import com.sfdex.goldfish.accessibility.ViewHelper
 import com.sfdex.goldfish.proxy.ViewHelperProxy
+import com.sfdex.goldfish.utils.DeviceUtil
 import com.sfdex.goldfish.utils.log
 
 private const val TAG = "TabletApnHandler"
-var currentStep = TabletApnHandler.APN_SETTING
+
+const val NET_MORE = 0
+const val APN_SETTING = 1
+const val NEW_APN = 2
+const val CLICK_NAME = 3
+const val INPUT_NAME = 4
+const val SAVE_NAME = 5
+const val CLICK_APN = 6
+const val INPUT_APN = 7
+const val SAVE_APN = 8
+const val SAVE_ENTER = 9
+const val SAVE = 10
+const val APPLY = 11
+const val FINISH = 12
+
+var currentStep = APN_SETTING
 
 class TabletApnHandler(
     private val accessibilityService: MyAccessibilityService,
@@ -53,6 +69,7 @@ class TabletApnHandler(
             when (event.className) {
                 in arrayOf(
                     "com.android.phone.MobileNetworkSettings",
+                    "androidx.recyclerview.widget.RecyclerView",    //Android 11
                     "com.android.settings.Settings\$ApnSettingsActivity",
                     "com.android.settings.Settings\$ApnEditorActivity",
                     "android.app.AlertDialog",
@@ -60,15 +77,6 @@ class TabletApnHandler(
                     "android.widget.FrameLayout"
                 ) -> monitorEvent(event)
 
-                /*"com.android.phone.MobileNetworkSettings" -> proxy.findByTxt("接入点名称", event)
-                "com.android.settings.Settings\$ApnSettingsActivity" -> if(currentStep == APPLY) inputAndSave(event) else proxy.findByTxt("新建 APN", event)
-                "com.android.settings.Settings\$ApnEditorActivity" -> inputAndSave(event)
-                "android.app.AlertDialog" -> inputAndSave(event)
-                "android.widget.FrameLayout" -> inputAndSave(event)*/
-
-//                "com.android.providers.telephony" -> proxy.findByTxt("新建 APN", event, true)
-//                "com.android.settings" -> proxy.findByTxt("接入点名称 (APN)", event, true)
-//                else -> inputAndSave(event)
                 else -> null
             }
 
@@ -81,27 +89,15 @@ class TabletApnHandler(
         return false
     }
 
-    companion object {
-        const val APN_SETTING = 1
-        const val NEW_APN = 2
-        const val CLICK_NAME = 3
-        const val INPUT_NAME = 4
-        const val SAVE_NAME = 5
-        const val CLICK_APN = 6
-        const val INPUT_APN = 7
-        const val SAVE_APN = 8
-        const val SAVE_ENTER = 9
-        const val SAVE = 10
-        const val APPLY = 11
-        const val FINISH = 12
-    }
-
-//    var currentStep = APN_SETTING
+    //    var currentStep = APN_SETTING
     private fun monitorEvent(event: AccessibilityEvent): AccessibilityNodeInfo? {
+        TAG log "MEV PackageName: ${event.packageName}"
+        TAG log "MEV ClassName: ${event.className}"
         TAG log "before currentStep: $currentStep"
         var node: AccessibilityNodeInfo? =
             when (currentStep) {
-                APN_SETTING -> proxy.findByTxt("接入点名称", event)
+                NET_MORE -> proxy.findByTxt("高级", event)
+                APN_SETTING -> if(!DeviceUtil.isAndroid11() || event.className == "androidx.recyclerview.widget.RecyclerView") proxy.findByTxt("接入点名称", event) else null
                 NEW_APN -> proxy.findByTxt("新建 APN", event)
                 CLICK_NAME -> proxy.findByTxt("名称", event, true)
                 INPUT_NAME -> proxy.findById("android:id/edit", event)
@@ -179,7 +175,8 @@ class TabletApnHandler(
             //窗口内容变化
             AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> { //2048
                 Log.d(TAG, "TYPE_WINDOW_CONTENT_CHANGED: ${event.className}")
-                if (event.packageName.equals("com.ruanmei.ithome")) {
+                hasSkip = skip(event)
+                /*if (event.packageName.equals("com.ruanmei.ithome")) {
                     if (!hasSkip)
                         hasSkip = skip(event)
                     return
@@ -190,7 +187,7 @@ class TabletApnHandler(
                         execTime++
                         hasSkip = skip(event)
                     }
-                }
+                }*/
             }
 
             //1

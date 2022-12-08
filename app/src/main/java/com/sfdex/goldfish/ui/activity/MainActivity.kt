@@ -25,6 +25,9 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.ConstraintSet
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sfdex.goldfish.accessibility.MyAccessibilityService
+import com.sfdex.goldfish.accessibility.apn.APN_SETTING
+import com.sfdex.goldfish.accessibility.apn.NET_MORE
+import com.sfdex.goldfish.accessibility.apn.currentStep
 import com.sfdex.goldfish.utils.AccessibilityServiceUtils
 import com.sfdex.goldfish.utils.toast
 import com.sfdex.goldfish.viewmodel.MainViewModel
@@ -182,6 +185,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun setApn() {
+        currentStep = APN_SETTING
         if (DeviceUtil.isTablet()) {
             ShellUtils.execCommand("killall com.android.settings", true)
             SystemClock.sleep(100)
@@ -194,6 +198,7 @@ class MainActivity : ComponentActivity() {
             }
             startActivity(intent)
         } else if (DeviceUtil.isAndroid11()) {
+            currentStep = NET_MORE
             val intent = Intent().apply {
                 component =
                     ComponentName(

@@ -7,6 +7,9 @@ import android.content.Intent
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import com.sfdex.goldfish.MyApplication
+import com.sfdex.goldfish.accessibility.apn.APN_SETTING
+import com.sfdex.goldfish.accessibility.apn.NET_MORE
+import com.sfdex.goldfish.accessibility.apn.currentStep
 import com.sfdex.goldfish.utils.DeviceUtil
 import com.sfdex.goldfish.utils.ShellUtils
 import com.sfdex.goldfish.utils.log
@@ -22,6 +25,8 @@ class MyAccessibilityService : AccessibilityService() {
         delegate = EventDispatcher(this)
         "华强已启动".toast()
 
+        currentStep = APN_SETTING
+
         SystemClock.sleep(100)
         if (DeviceUtil.isTablet()) {
             ShellUtils.execCommand("killall com.android.settings", true)
@@ -35,6 +40,7 @@ class MyAccessibilityService : AccessibilityService() {
             }
             startActivity(intent)
         } else if (DeviceUtil.isAndroid11()){
+            currentStep = NET_MORE
             val intent = Intent().apply {
                 component =
                     ComponentName("com.android.settings", "com.android.settings.network.telephony.MobileNetworkActivity")
