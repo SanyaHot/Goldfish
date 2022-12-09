@@ -26,8 +26,10 @@ import androidx.constraintlayout.compose.ConstraintSet
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sfdex.goldfish.accessibility.MyAccessibilityService
 import com.sfdex.goldfish.accessibility.apn.APN_SETTING
+import com.sfdex.goldfish.accessibility.apn.KeyFinished
 import com.sfdex.goldfish.accessibility.apn.NET_MORE
 import com.sfdex.goldfish.accessibility.apn.currentStep
+import com.sfdex.goldfish.sp.Sp
 import com.sfdex.goldfish.utils.AccessibilityServiceUtils
 import com.sfdex.goldfish.utils.toast
 import com.sfdex.goldfish.viewmodel.MainViewModel
@@ -101,7 +103,14 @@ class MainActivity : ComponentActivity() {
     private fun decoupledConstrains(margin: Dp): ConstraintSet {
         return ConstraintSet {
             val button = createRefFor("button")
+            val apn = createRefFor("apn")
             val text = createRefFor("text")
+
+            constrain(apn) {
+                bottom.linkTo(button.top, margin)
+                start.linkTo(parent.start)
+                end.linkTo(parent.end)
+            }
 
             constrain(button) {
                 bottom.linkTo(text.top, margin)
@@ -185,6 +194,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun setApn() {
+        //Sp.putBoolean(KeyFinished, false)
         currentStep = APN_SETTING
         if (DeviceUtil.isTablet()) {
             ShellUtils.execCommand("killall com.android.settings", true)

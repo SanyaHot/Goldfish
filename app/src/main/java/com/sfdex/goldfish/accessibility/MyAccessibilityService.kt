@@ -8,8 +8,10 @@ import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import com.sfdex.goldfish.MyApplication
 import com.sfdex.goldfish.accessibility.apn.APN_SETTING
+import com.sfdex.goldfish.accessibility.apn.KeyFinished
 import com.sfdex.goldfish.accessibility.apn.NET_MORE
 import com.sfdex.goldfish.accessibility.apn.currentStep
+import com.sfdex.goldfish.sp.Sp
 import com.sfdex.goldfish.utils.DeviceUtil
 import com.sfdex.goldfish.utils.ShellUtils
 import com.sfdex.goldfish.utils.log
@@ -23,7 +25,9 @@ class MyAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         delegate = EventDispatcher(this)
-        "华强已启动".toast()
+        "AutoApn已启动".toast()
+
+        //if (Sp.getBoolean(KeyFinished)) return
 
         currentStep = APN_SETTING
 
@@ -39,11 +43,14 @@ class MyAccessibilityService : AccessibilityService() {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
             startActivity(intent)
-        } else if (DeviceUtil.isAndroid11()){
+        } else if (DeviceUtil.isAndroid11()) {
             currentStep = NET_MORE
             val intent = Intent().apply {
                 component =
-                    ComponentName("com.android.settings", "com.android.settings.network.telephony.MobileNetworkActivity")
+                    ComponentName(
+                        "com.android.settings",
+                        "com.android.settings.network.telephony.MobileNetworkActivity"
+                    )
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
             startActivity(intent)
@@ -51,6 +58,8 @@ class MyAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
+        //if (Sp.getBoolean(KeyFinished)) return
+
         delegate?.onAccessibilityEvent(event)
     }
 

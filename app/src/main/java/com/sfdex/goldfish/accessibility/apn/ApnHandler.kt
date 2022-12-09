@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
@@ -14,8 +15,14 @@ import com.sfdex.goldfish.accessibility.IViewHelper
 import com.sfdex.goldfish.accessibility.MyAccessibilityService
 import com.sfdex.goldfish.accessibility.ViewHelper
 import com.sfdex.goldfish.proxy.ViewHelperProxy
+import com.sfdex.goldfish.sp.Sp
 import com.sfdex.goldfish.utils.DeviceUtil
+import com.sfdex.goldfish.utils.ShellUtils
+import com.sfdex.goldfish.utils.gContext
 import com.sfdex.goldfish.utils.log
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private const val TAG = "TabletApnHandler"
 
@@ -33,9 +40,11 @@ const val SAVE = 10
 const val APPLY = 11
 const val FINISH = 12
 
+const val KeyFinished = "ApnFinished"
+
 var currentStep = APN_SETTING
 
-class TabletApnHandler(
+class ApnHandler(
     private val accessibilityService: MyAccessibilityService,
 ) {
 
@@ -54,6 +63,9 @@ class TabletApnHandler(
     //查找ViewId失败
     private var findIdFailed = false
 
+    //是否已经存在
+    private var alreadyExists = false
+
     //ViewHelper代理
     private val proxy: IViewHelper =
         ViewHelperProxy.newInstance(ViewHelper(accessibilityService))
@@ -69,6 +81,8 @@ class TabletApnHandler(
             when (event.className) {
                 in arrayOf(
                     "com.android.phone.MobileNetworkSettings",
+                    //"android.widget.ListView",                  //Tablet: or not
+                    //"android.support.v7.widget.RecyclerView",   //Tablet: or not
                     "androidx.recyclerview.widget.RecyclerView",    //Android 11
                     "com.android.settings.Settings\$ApnSettingsActivity",
                     "com.android.settings.Settings\$ApnEditorActivity",
@@ -97,8 +111,12 @@ class TabletApnHandler(
         var node: AccessibilityNodeInfo? =
             when (currentStep) {
                 NET_MORE -> proxy.findByTxt("高级", event)
-                APN_SETTING -> if(!DeviceUtil.isAndroid11() || event.className == "androidx.recyclerview.widget.RecyclerView") proxy.findByTxt("接入点名称", event) else null
-                NEW_APN -> proxy.findByTxt("新建 APN", event)
+                APN_SETTING -> if (!DeviceUtil.isAndroid11() || event.className == "androidx.recyclerview.widget.RecyclerView") proxy.findByTxt(
+                    "接入点名称",
+                    event
+                ) else null
+                //NEW_APN -> proxy.findByTxt("新建 APN", event)
+                NEW_APN -> proxy.findByTxt("shykd01s.shm2mapn", event)
                 CLICK_NAME -> proxy.findByTxt("名称", event, true)
                 INPUT_NAME -> proxy.findById("android:id/edit", event)
                 SAVE_NAME -> proxy.findById("android:id/button1", event)
@@ -107,37 +125,75 @@ class TabletApnHandler(
                 SAVE_APN -> proxy.findById("android:id/button1", event)
                 SAVE_ENTER -> proxy.findByTxt("更多选项", event)
                 SAVE -> proxy.findByTxt("保存", event)
-                APPLY -> proxy.findById("com.android.settings:id/apn_radiobutton", event, true)
+                //APPLY -> proxy.findById("com.android.settings:id/apn_radiobutton", event, true)
+                APPLY -> proxy.findByTxt("shykd01s.shm2mapn", event, true)
+                //APPLY -> proxy.findByTxt("UCloud", event, true)
                 else -> null
             }
         if (node != null) {
-            if (currentStep == INPUT_NAME) {
-                val ret = input(node, "UCloud")
-                Log.d(TAG, "inputName: $ret")
-                if (!ret) {
-                    return null
+            when (currentStep) {
+                NEW_APN -> {
+                    alreadyExists = true
+                    node = null
+                    currentStep = FINISH
+                    Log.d(TAG, "monitorEvent: alreadyExists")
                 }
-                currentStep++
-                node = proxy.findById("android:id/button1", event)
+                INPUT_NAME -> {
+                    val ret = input(node, "UCloud")
+                    Log.d(TAG, "inputName: $ret")
+                    if (!ret) {
+                        return null
+                    }
+                    currentStep++
+                    node = proxy.findById("android:id/button1", event)
+                }
+
+                INPUT_APN -> {
+                    val ret = input(node!!, "shykd01s.shm2mapn")
+                    Log.d(TAG, "inputAPN: $ret")
+                    if (!ret) {
+                        return null
+                    }
+                    currentStep++
+                    node = proxy.findById("android:id/button1", event)
+                }
+
+                APPLY -> {
+                    //node.performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_SELECT.id)
+
+                    node = if (node.parent?.parent != null && node.parent.parent.childCount >= 2) {
+                        var newNode = node.parent.parent.getChild(1)
+                        newNode.toString()
+                        Log.d(TAG, "newNode: $newNode")
+                        if (newNode != null && newNode.isSelected) {
+                            newNode = null
+                        }
+                        newNode
+                    } else null
+                }
             }
-            if (currentStep == INPUT_APN) {
-                val ret = input(node!!, "shykd01s.shm2mapn")
-                Log.d(TAG, "inputAPN: $ret")
-                if (!ret) {
-                    return null
-                }
-                currentStep++
-                node = proxy.findById("android:id/button1", event)
+        } else {
+            if (currentStep == NEW_APN) {
+                node = proxy.findByTxt("新建 APN", event)
             }
         }
-        if (node != null) {
-            TAG log "inputAndSave: ${event.className}"
-            if (currentStep == APPLY) {
-                //node.performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_SELECT.id)
-            }
+
+        node?.let {
             currentStep++
         }
+
         TAG log "after currentStep: $currentStep"
+        if (currentStep == FINISH && !alreadyExists) {
+            GlobalScope.launch {
+                //Sp.putBoolean(KeyFinished, true)
+
+//                if (DeviceUtil.isTablet()) {
+//                    delay(3000)
+//                    //Toast.makeText(gContext, "APN设置完成", Toast.LENGTH_SHORT).show()
+//                    ShellUtils.execCommand("reboot", true)
+//                }
+            }
+        }
         return node
     }
 
@@ -176,18 +232,6 @@ class TabletApnHandler(
             AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> { //2048
                 Log.d(TAG, "TYPE_WINDOW_CONTENT_CHANGED: ${event.className}")
                 hasSkip = skip(event)
-                /*if (event.packageName.equals("com.ruanmei.ithome")) {
-                    if (!hasSkip)
-                        hasSkip = skip(event)
-                    return
-                }
-
-                if (event.windowId == lastWindowId) {
-                    while (execTime < 5 && !hasSkip) {
-                        execTime++
-                        hasSkip = skip(event)
-                    }
-                }*/
             }
 
             //1
